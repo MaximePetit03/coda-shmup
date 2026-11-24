@@ -11,6 +11,8 @@ export default class EntityManager extends Plugins.ScenePlugin {
     public static readonly PLUGIN_KEY: string = 'EntityManager';
     public static readonly MAPPING_NAME: string = 'entityManager';
 
+    private static readonly FALLBACK_MAX_SIMULTANEOUS_ENEMIES: number = 5;
+
     // noinspection JSUnusedGlobalSymbols
     private readonly bulletGroupConfig = {
         classType: Bullet,
@@ -108,8 +110,19 @@ export default class EntityManager extends Plugins.ScenePlugin {
         console.log("[EntityManager] Group collisions initialized");
     }
 
+    private getMaxSimultaneousEnemies(): number {
+        const playerMaxEnemies = this._player?.getMaxSimultaneousEnemies?.();
+        if (typeof playerMaxEnemies === 'number' && playerMaxEnemies > 0) {
+            return playerMaxEnemies;
+        }
+
+        return EntityManager.FALLBACK_MAX_SIMULTANEOUS_ENEMIES;
+    }
+
     private spawnEnemy() {
-        if (this._enemies.countActive(true) >= 5) {
+        const maxActiveEnemies: number = this.getMaxSimultaneousEnemies();
+
+        if (this._enemies.countActive(true) >= maxActiveEnemies) {
             return;
         }
 

@@ -7,8 +7,14 @@ import EntityManager from "../managers/EntityManager.ts";
 import GameConstants from "../GameConstants.ts";
 
 export default class MainGameScene extends Scene {
-    private bg: GameObjects.TileSprite;
-    private planet: GameObjects.Image;
+    private static readonly BASE_BG_SCROLL_SPEED: number = 0.1;
+    private static readonly BASE_PLANET_FALL_SPEED: number = 0.4;
+    private static readonly SCORE_STEP_SIZE: number = 10;
+    private static readonly SCROLL_STEP_INCREMENT: number = 0.1;
+    private static readonly MAX_SCROLL_MULTIPLIER: number = 2.5;
+
+    private backgroundTile: GameObjects.TileSprite;
+    private scrollingPlanet: GameObjects.Image;
     private saveManager: SaveManager;
     private entityManager: EntityManager;
 
@@ -23,21 +29,27 @@ export default class MainGameScene extends Scene {
         }
         this.saveManager?.load();
 
-        const bgMargin = 512;
-        this.bg = this.add.tileSprite(this.cameras.main.centerX, this.cameras.main.centerY,
-            this.cameras.main.width + bgMargin, this.cameras.main.height + bgMargin, 'bg').setTileScale(2);
-        this.planet = this.add.image(0, -512, 'planet').setOrigin(0);
+        const backgroundMargin: number = 512;
+        this.backgroundTile = this.add.tileSprite(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY,
+            this.cameras.main.width + backgroundMargin,
+            this.cameras.main.height + backgroundMargin,
+            'bg'
+        ).setTileScale(2);
+
+        this.scrollingPlanet = this.add.image(0, -512, 'planet').setOrigin(0);
 
         if (!this.entityManager) {
             console.error('EntityManager plugin not found');
         }
 
-        const player = this.entityManager.initAndSpawnPlayer();
-        player.getComponent(Health)?.once(Health.DEATH_EVENT, () => {
-            // Hide the player and let its explosion play before showing the game over screen
-            player.disableBody(true, true);
+        const spawnedPlayer = this.entityManager.initAndSpawnPlayer();
+        spawnedPlayer.getComponent(Health)?.once(Health.DEATH_EVENT, () => {
+            spawnedPlayer.disableBody(true, true);
             this.time.delayedCall(1000, this.endGame, [], this);
         }, this);
+
         this.entityManager.initEnemies();
         this.entityManager.initGroupCollisions();
 
@@ -63,8 +75,21 @@ export default class MainGameScene extends Scene {
         this.scene.start(GameConstants.SceneKeys.GAME_OVER);
     }
 
+    private getScoreTierMultiplier(): number {
+        const currentPlayerScore: number = Math.max(
+            0,
+            Number(this.registry.get(RegistryConstants.Keys.PLAYER_SCORE) ?? 0)
+        );
+        const completedScoreSteps: number = Math.floor(currentPlayerScore / MainGameScene.SCORE_STEP_SIZE);
+        const rawMultiplier: number = 1 + completedScoreSteps * MainGameScene.SCROLL_STEP_INCREMENT;
+
+        return Math.min(Number(rawMultiplier.toFixed(2)), MainGameScene.MAX_SCROLL_MULTIPLIER);
+    }
+
     update(_timeSinceLaunch: number, deltaTime: number) {
-        this.bg.tilePositionY -= 0.1 * deltaTime;
-        this.planet.y += 0.40 * deltaTime;
+        const scoreMultiplier: number = this.getScoreTierMultiplier();
+
+        this.backgroundTile.tilePositionY -= MainGameScene.BASE_BG_SCROLL_SPEED * scoreMultiplier * deltaTime;
+        this.scrollingPlanet.y += MainGameScene.BASE_PLANET_FALL_SPEED * scoreMultiplier * deltaTime;
     }
 }

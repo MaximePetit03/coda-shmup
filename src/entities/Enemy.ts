@@ -5,52 +5,99 @@ import Movement from "../components/Movement.ts";
 import Weapon from "../components/Weapon.ts";
 
 export default class Enemy extends Entity {
-    private readonly _bulletData: BulletData = {
-        width: 12,
-        height: 12,
+    private static readonly ENEMY_SCALE_MULTIPLIER: number = 1.35;
+    private static readonly DEFAULT_SHOOT_INTERVAL_MS: number = 2000;
+
+    private readonly enemyBulletConfig: BulletData = {
+        width: 400,
+        height: 400,
         color: 0xf25f5c,
         speed: 512,
         damage: 1,
     };
-    private _shootTimerConfig: Phaser.Types.Time.TimerEventConfig;
-    private _shootTimer: Phaser.Time.TimerEvent;
 
-    public init(bulletsGroup: Phaser.Physics.Arcade.Group) {
-        this.addComponent(new Health(1, this));
+    private readonly downwardAngleDegrees: number = 0;
+    private enemyScaleMultiplier: number = Enemy.ENEMY_SCALE_MULTIPLIER;
+    private currentShootIntervalMs: number = Enemy.DEFAULT_SHOOT_INTERVAL_MS;
+    private shootTimerConfig: Phaser.Types.Time.TimerEventConfig;
+    private shootTimer: Phaser.Time.TimerEvent;
+
+    private readonly handleShipChanged = (
+        _maxSimultaneousEnemies: number,
+        nextEnemyFireIntervalMs: number
+    ) => {
+        if (typeof nextEnemyFireIntervalMs === 'number' && nextEnemyFireIntervalMs > 0) {
+            this.updateShootTimerInterval(nextEnemyFireIntervalMs);
+        }
+    };
+
+    private applyProportionalScaleAndHitbox() {
+        this.setScale(this.enemyScaleMultiplier);
+        if (this.arcadeBody) {
+            this.arcadeBody.setCircle(this.displayWidth / 2);
+        }
+    }
+
+    private updateShootTimerInterval(nextIntervalMs: number) {
+        this.currentShootIntervalMs = nextIntervalMs;
+
+        this.shootTimerConfig = {
+            delay: this.currentShootIntervalMs,
+            callback: this.shoot,
+            callbackScope: this,
+            loop: true
+        };
+
+        if (this.shootTimer) {
+            const wasPaused: boolean = this.shootTimer.paused;
+            this.shootTimer.remove(false);
+            this.shootTimer = this.scene.time.addEvent(this.shootTimerConfig);
+            this.shootTimer.paused = wasPaused;
+        }
+    }
+
+    public init(bulletsPool: Phaser.Physics.Arcade.Group) {
+        this.addComponent(new Health(3, this));
         this.addComponent(new Movement(0.2));
-        this.addComponent(new Weapon(bulletsGroup, this._bulletData));
+        this.addComponent(new Weapon(bulletsPool, this.enemyBulletConfig));
 
-        // Listen once per enemy, not on every enable(): pooled enemies are reused many times
-        const health = this.getComponent(Health);
-        health?.on(Health.CHANGE_EVENT, () => {
+        const enemyHealth = this.getComponent(Health);
+        enemyHealth?.on(Health.CHANGE_EVENT, () => {
             this.setTintFill(0xffffff);
 
-            if (health?.current == 0)
-            {
+            if (enemyHealth.current === 0) {
                 this.disableBody();
             }
 
             this.scene.time.delayedCall(50, () => {
                 this.clearTint();
 
-                if (health?.current == 0)
-                {
+                if (enemyHealth.current === 0) {
                     this.disable();
                 }
             });
         });
 
-        this.angle = 90;
+        this.setTexture('sprites', 'ufoRed');
+        this.angle = this.downwardAngleDegrees;
 
-        this._shootTimerConfig = {
-            delay: Phaser.Math.Between(2000, 3000),
+        this.shootTimerConfig = {
+            delay: this.currentShootIntervalMs,
             callback: this.shoot,
             callbackScope: this,
             loop: true
         };
-        this._shootTimer = this.scene.time.addEvent(this._shootTimerConfig);
+        this.shootTimer = this.scene.time.addEvent(this.shootTimerConfig);
+        this.shootTimer.paused = true;
 
-        // Create animation when enemy is about to shoot in the global animation manager
+        this.scene.events.off('player:ship-changed', this.handleShipChanged);
+        this.scene.events.on('player:ship-changed', this.handleShipChanged);
+
+        this.once(Phaser.GameObjects.Events.DESTROY, () => {
+            this.scene.events.off('player:ship-changed', this.handleShipChanged);
+            this.shootTimer?.remove(false);
+        });
+
         if (!this.scene.anims.exists('ufoShoot')) {
             this.scene.anims.create({
                 key: 'ufoShoot',
@@ -63,16 +110,26 @@ export default class Enemy extends Entity {
             });
         }
 
-        this.arcadeBody.setCircle(this.displayWidth / 2);
+        this.applyProportionalScaleAndHitbox();
     }
 
-    public enable(x: number, y: number) {
-        this.enableBody(true, x, y - this.displayHeight, true, true);
-        this._shootTimer.reset(this._shootTimerConfig);
+    public enable(spawnX: number, spawnY: number) {
+        this.setTexture('sprites', 'ufoRed');
+        this.angle = this.downwardAngleDegrees;
+        this.setScale(this.enemyScaleMultiplier);
 
-        // Restore health, in case the enemy is reused from the pool, without emitting events
-        const health = this.getComponent(Health);
-        health?.heal(health!.max, false);
+        this.enableBody(true, spawnX, spawnY - this.displayHeight, true, true);
+        this.applyProportionalScaleAndHitbox();
+
+        this.shootTimerConfig = {
+            ...this.shootTimerConfig,
+            delay: this.currentShootIntervalMs
+        };
+        this.shootTimer.paused = false;
+        this.shootTimer.reset(this.shootTimerConfig);
+
+        const enemyHealth = this.getComponent(Health);
+        enemyHealth?.heal(enemyHealth.max, false);
     }
 
     public disable() {
@@ -80,13 +137,19 @@ export default class Enemy extends Entity {
         this.removeAllListeners(Phaser.Animations.Events.ANIMATION_COMPLETE);
 
         this.disableBody(true, true);
-        this._shootTimer.paused = true;
+        if (this.shootTimer) {
+            this.shootTimer.paused = true;
+        }
     }
 
     private shoot() {
         this.play('ufoShoot');
+        this.setScale(this.enemyScaleMultiplier);
+
         this.once(Phaser.Animations.Events.ANIMATION_COMPLETE, () => {
             this.setTexture('sprites', 'ufoRed');
+            this.angle = this.downwardAngleDegrees;
+            this.applyProportionalScaleAndHitbox();
 
             this.getComponent(Weapon)?.shoot(this);
             this.scene.sound.play('sfx_laser2');
@@ -94,16 +157,16 @@ export default class Enemy extends Entity {
     }
 
     preUpdate(timeSinceLaunch: number, deltaTime: number) {
-        super.preUpdate(timeSinceLaunch, deltaTime)
+        super.preUpdate(timeSinceLaunch, deltaTime);
 
-        // Destroy entities when out of screen
         if (this.y > this.scene.cameras.main.height + this.displayHeight) {
             this.disable();
         }
 
-        if (!this.isTinted)
+        if (!this.isTinted) {
             this.getComponent(Movement)?.moveVertically(this, deltaTime);
-        else
+        } else {
             this.getComponent(Movement)?.moveVertically(this, deltaTime * 0.5);
+        }
     }
 }
