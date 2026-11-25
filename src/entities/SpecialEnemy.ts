@@ -22,7 +22,6 @@ export default class SpecialEnemy extends Enemy {
         this.addComponent(new Movement(this._enemyConfig.movement.verticalSpeed));
         this.addComponent(new Weapon(bulletsGroup, this._enemyConfig.weapon.bulletData));
 
-        // Listen once per enemy, not on every enable(): pooled enemies are reused many times
         const health = this.getComponent(Health);
         health?.on(Health.CHANGE_EVENT, () => {
             this.setTintFill(0xffffff);
@@ -50,7 +49,6 @@ export default class SpecialEnemy extends Enemy {
         };
         this._shootTimer = this.scene.time.addEvent(this._shootTimerConfig);
 
-        // Create animation when enemy is about to shoot in the global animation manager
         if (!this.scene.anims.exists('ufoShoot')) {
             this.scene.anims.create({
                 key: 'ufoShoot',
@@ -68,7 +66,7 @@ export default class SpecialEnemy extends Enemy {
 
     public enable(x: number, y: number) {
         if (!this._enemyConfig || !this._shootTimer) {
-            console.error("SpecialEnemy: impossible d'activer l'ennemi, initialisation incomplète.");
+            console.error("SpecialEnemy: impossible d'activer l'ennemi");
             return;
         }
 
@@ -78,7 +76,6 @@ export default class SpecialEnemy extends Enemy {
         this.enableBody(true, x, y - this.displayHeight, true, true);
         this._shootTimer.reset(this._shootTimerConfig);
 
-        // Restore health, in case the enemy is reused from the pool, without emitting events
         const health = this.getComponent(Health);
         health?.heal(health.max, false);
     }

@@ -38,8 +38,6 @@ export default class MainUIScene extends Scene {
             .setOrigin(1, 0);
 
         this.scene.bringToTop();
-
-        console.log("MainUIScene created");
     }
 
     private onPlayerScoreChanged(_: any, value: number) {

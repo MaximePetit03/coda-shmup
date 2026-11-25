@@ -52,8 +52,6 @@ export default class MainGameScene extends Scene {
         }
 
         this.registry.set(RegistryConstants.Keys.PLAYER_SCORE, 0);
-
-        console.log("MainGameScene created");
     }
 
     private endGame() {

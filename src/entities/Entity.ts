@@ -43,16 +43,12 @@ export default class Entity extends Physics.Arcade.Sprite {
     preUpdate(_timeSinceLaunch: number, _deltaTime: number) {
         super.preUpdate(_timeSinceLaunch, _deltaTime);
 
-        // Draw a debug line to show the entity forward direction
         if (this.scene.game.config.physics.arcade?.debug)
         {
             this._forwardDebugLine.setPosition(this.x, this.y)
 
             const forward: Phaser.Math.Vector2 = new Phaser.Math.Vector2(64, 0).rotate(this.rotation);
             this._forwardDebugLine.setTo(0, 0, forward.x, forward.y);
-
-            // Maths way
-            // this._forwardDebugLine.setTo(0, 0, Math.cos(this.rotation) * 64, Math.sin(this.rotation) * 64);
         }
     }
 }

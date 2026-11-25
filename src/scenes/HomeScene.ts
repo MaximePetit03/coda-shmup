@@ -55,7 +55,5 @@ export default class HomeScene extends Phaser.Scene {
             this.scene.launch(GameConstants.SceneKeys.MAIN_UI);
             this.scene.start(GameConstants.SceneKeys.MAIN_GAME);
         });
-
-        console.log("HomeScene created");
     }
 }
