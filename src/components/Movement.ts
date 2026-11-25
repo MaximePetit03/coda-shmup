@@ -16,17 +16,25 @@ export default class Movement implements IComponent {
         this._speed = speed;
     }
 
-    public moveHorizontally(entity: Entity, deltaTime: number) {
+    Horizontally(entity: Entity, deltaTime: number) {
         if (!this.enabled)
             return;
 
         entity.x += this._speed * deltaTime;
     }
 
-    public moveVertically(entity: Entity, deltaTime: number) {
+    Vertically(entity: Entity, deltaTime: number) {
         if (!this.enabled)
             return;
 
         entity.y += this._speed * deltaTime;
+    }
+
+    public move(entity: Entity, direction: Phaser.Math.Vector2, deltaTime: number) {
+        if (!this.enabled)
+            return;
+
+        entity.x += direction.x * this._speed * deltaTime;
+        entity.y += direction.y * this._speed * deltaTime;
     }
 }
