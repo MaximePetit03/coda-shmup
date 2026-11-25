@@ -1,0 +1,22 @@
+{
+  "specialEnemy": {
+    "health": 2,
+    "movement": {
+      "verticalSpeed": 0.27,
+      "horizontalAmplitude": 300,
+      "oscillationFrequency": 0.002
+    },
+    "weapon": {
+      "shootDelay": 1000,
+      "bulletCount": 10,
+      "spreadAngleDeg": 150,
+      "bulletData": {
+        "width": 15,
+        "height": 15,
+        "color": 15884124,
+        "speed": 1024,
+        "damage": 1
+      }
+    }
+  }
+}

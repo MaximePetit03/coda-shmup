@@ -1,4 +1,4 @@
-import {Scene, GameObjects} from 'phaser';
+import { Scene, GameObjects } from 'phaser';
 import Health from "../components/Health.ts";
 import RegistryConstants from "../RegistryConstants.ts";
 import SaveManager from "../managers/SaveManager.ts";
@@ -16,7 +16,6 @@ export default class MainGameScene extends Scene {
         super(GameConstants.SceneKeys.MAIN_GAME);
     }
 
-    // noinspection JSUnusedGlobalSymbols
     create() {
         if (!this.saveManager) {
             console.error('SaveManager plugin not found');
@@ -24,8 +23,13 @@ export default class MainGameScene extends Scene {
         this.saveManager?.load();
 
         const bgMargin = 512;
-        this.bg = this.add.tileSprite(this.cameras.main.centerX, this.cameras.main.centerY,
-            this.cameras.main.width + bgMargin, this.cameras.main.height + bgMargin, 'bg').setTileScale(2);
+        this.bg = this.add.tileSprite(
+            this.cameras.main.centerX,
+            this.cameras.main.centerY,
+            this.cameras.main.width + bgMargin,
+            this.cameras.main.height + bgMargin,
+            'bg'
+        ).setTileScale(2);
         this.planet = this.add.image(0, -512, 'planet').setOrigin(0);
 
         if (!this.entityManager) {

@@ -29,4 +29,17 @@ export default class Movement implements IComponent {
 
         entity.y += this._speed * deltaTime;
     }
+
+    public moveSinusoidally(
+        entity: Phaser.Physics.Arcade.Sprite,
+        deltaTime: number,
+        centerX: number,
+        elapsedTime: number,
+        amplitude: number,
+        frequency: number
+    ) {
+        entity.y += this._speed * deltaTime;
+
+        entity.x = centerX + Math.sin(elapsedTime * frequency) * amplitude;
+    }
 }

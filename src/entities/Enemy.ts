@@ -12,8 +12,8 @@ export default class Enemy extends Entity {
         speed: 512,
         damage: 1,
     };
-    private _shootTimerConfig: Phaser.Types.Time.TimerEventConfig;
-    private _shootTimer: Phaser.Time.TimerEvent;
+    protected _shootTimerConfig: Phaser.Types.Time.TimerEventConfig;
+    protected _shootTimer: Phaser.Time.TimerEvent;
 
     public init(bulletsGroup: Phaser.Physics.Arcade.Group) {
         this.addComponent(new Health(1, this));
@@ -70,7 +70,6 @@ export default class Enemy extends Entity {
         this.enableBody(true, x, y - this.displayHeight, true, true);
         this._shootTimer.reset(this._shootTimerConfig);
 
-        // Restore health, in case the enemy is reused from the pool, without emitting events
         const health = this.getComponent(Health);
         health?.heal(health!.max, false);
     }
@@ -93,17 +92,22 @@ export default class Enemy extends Entity {
         });
     }
 
-    preUpdate(timeSinceLaunch: number, deltaTime: number) {
-        super.preUpdate(timeSinceLaunch, deltaTime)
-
-        // Destroy entities when out of screen
-        if (this.y > this.scene.cameras.main.height + this.displayHeight) {
-            this.disable();
-        }
-
+    protected moveEnemy(deltaTime: number) {
         if (!this.isTinted)
             this.getComponent(Movement)?.moveVertically(this, deltaTime);
         else
             this.getComponent(Movement)?.moveVertically(this, deltaTime * 0.5);
+    }
+
+    preUpdate(timeSinceLaunch: number, deltaTime: number) {
+        super.preUpdate(timeSinceLaunch, deltaTime);
+
+        // Destroy entities when out of screen
+        if (this.y > this.scene.cameras.main.height + this.displayHeight) {
+            this.disable();
+            return;
+        }
+
+        this.moveEnemy(deltaTime);
     }
 }
