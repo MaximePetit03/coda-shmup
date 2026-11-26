@@ -35,15 +35,21 @@ export default class Weapon implements IComponent {
         }
     }
 
-    public shootSpread(source: Entity, bulletCount: number, spreadAngleDeg: number) {
+    public shootSpread(
+        source: Entity,
+        bulletCount: number,
+        spreadAngleDeg: number,
+        aimOffsetDeg: number = 90
+    ) {
         if (!this.enabled || !this._bullets)
             return;
 
         const safeBulletCount = Math.max(1, Math.floor(bulletCount));
+        const baseAimAngleRad = source.rotation + Phaser.Math.DegToRad(aimOffsetDeg);
         const totalSpreadRad = Phaser.Math.DegToRad(spreadAngleDeg);
         const startAngleRad = safeBulletCount === 1
-            ? source.rotation
-            : source.rotation - totalSpreadRad / 2;
+            ? baseAimAngleRad
+            : baseAimAngleRad - totalSpreadRad / 2;
         const angleStepRad = safeBulletCount === 1
             ? 0
             : totalSpreadRad / (safeBulletCount - 1);
